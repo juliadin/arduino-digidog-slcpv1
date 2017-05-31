@@ -40,20 +40,23 @@ void sanitize_timer(void) {
 }
 
 void status(void) {
+    // current timer value
     SerialUSB.print(F("C:"));
     SerialUSB.println( timer, DEC);
+
+    // timer start value
     SerialUSB.print(F("S:"));
     SerialUSB.println( timer_start, DEC);
-    if (armed > 0) {
-      SerialUSB.println(F("A:1"));
-    } else {
-      SerialUSB.println(F("A:0"));
-    }
-    if (fired > 0) {
-      SerialUSB.println(F("F:1"));
-    } else {
-      SerialUSB.println(F("F:0"));
-    }
+
+    // Is timer armed and running?
+    SerialUSB.print(F("A:"));
+    SerialUSB.println(armed, DEC);
+
+    // Has watchdog fired since last start?
+    SerialUSB.print(F("F:"));
+    SerialUSB.println(fired, DEC);
+
+    // How often has the watchdog fired since the last boot/clear?
     SerialUSB.print(F("L:"));
     SerialUSB.println(fired_counter, DEC);
 
@@ -201,12 +204,16 @@ void loop(void) {
 
 
       // Timer Commands
+
+      // reduce a running timer to minimum, output status
       case '*':
            if (armed > 0) {
              timer = TIMER_SET_MIN;
            }
            status();
            break;
+
+      // reset timer and disarm Watchdog
       case 'x':
 #ifdef ALLOW_TIMER_STOP
            reset_timer();
@@ -216,6 +223,8 @@ void loop(void) {
 #endif
            status();
            break;
+
+      // arm watchdog, reset and start timer
       case 'X':
            armed = 1;
            reset_timer();
@@ -373,8 +382,10 @@ void loop(void) {
       // Set "fired" bit
       fired = 1;
 
-      // increment fired counter
-      fired_counter++;
+      // increment fired counter if it is not overflowing
+      if (fired_counter < 65535) {
+        fired_counter++;
+      }
     } else {
       timer--;
     }
