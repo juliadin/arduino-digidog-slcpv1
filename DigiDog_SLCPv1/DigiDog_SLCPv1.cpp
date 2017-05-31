@@ -11,7 +11,6 @@
 
 // Configuration can be done in DigiDog_config.h
 
-
 #define VERSION 2
 #define UNIT_ID 1
 unsigned int timer_start=ROM_TIMER_START;
