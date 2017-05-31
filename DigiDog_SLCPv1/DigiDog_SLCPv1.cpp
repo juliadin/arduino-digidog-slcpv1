@@ -1,3 +1,10 @@
+// DigiDog - Digispark based USB Hardware Watchdog
+// see https://wiki.jjim.de/projects:digidog for details and documentation
+// Code is licensed under the GPLv3 as provided here: https://www.gnu.org/licenses/gpl-3.0.txt or provided with this file
+// Copyright 2017 by Joel Brunenberg
+
+// Configuration can be done in DigiDog_config.h
+
 #include <DigiDog_SLCPv1.hpp>
 #include <Arduino.h>
 #include <DigiCDC.h>
@@ -6,13 +13,6 @@
 #include <DigiDog_globals.h>
 #include <DigiDog_target_commands.hpp>
 #include <DigiDog_output.hpp>
-
-// DigiDog - Digispark based USB Hardware Watchdog
-// see https://wiki.jjim.de/projects:digidog for details and documentation
-// Code is licensed under the GPLv3 as provided here: https://www.gnu.org/licenses/gpl-3.0.txt or provided with this file
-// Copyright 2017 by Joel Brunenberg
-
-// Configuration can be done in DigiDog_config.h
 
 #define VERSION 2
 #define UNIT_ID 1
