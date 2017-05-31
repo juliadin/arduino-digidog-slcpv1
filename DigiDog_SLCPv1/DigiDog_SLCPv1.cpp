@@ -1,8 +1,11 @@
+#include <DigiDog_SLCPv1.hpp>
 #include <Arduino.h>
 #include <DigiCDC.h>
 #include <DigisparkReset.hpp>
 #include <DigiDog_config.h>
+#include <DigiDog_globals.h>
 #include <DigiDog_target_commands.hpp>
+#include <DigiDog_output.hpp>
 
 // DigiDog - Digispark based USB Hardware Watchdog
 // see https://wiki.jjim.de/projects:digidog for details and documentation
@@ -13,6 +16,7 @@
 
 #define VERSION 2
 #define UNIT_ID 1
+
 unsigned int timer_start=ROM_TIMER_START;
 unsigned int timer=timer_start;
 unsigned int fired_counter = 0;
@@ -20,14 +24,6 @@ bool fired = 0;
 bool armed = ARMED_ON_BOOT;
 bool power_cycle_on_timeout = POWER_CYCLE_ON_TIMEOUT;
 unsigned int int_wdt = INTERNAL_WATCHDOG_START;
-
-void config(void);
-void status(void);
-void reset_target(void);
-void power_cycle_target(void);
-void reset_timer(void);
-void commands(void);
-void sanitize_timer(void);
 
 void sanitize_timer(void) {
   if (timer_start < TIMER_SET_MIN){
@@ -38,85 +34,6 @@ void sanitize_timer(void) {
   }
 }
 
-void status(void) {
-    // current timer value
-    SerialUSB.print(F("C:"));
-    SerialUSB.println( timer, DEC);
-
-    // timer start value
-    SerialUSB.print(F("S:"));
-    SerialUSB.println( timer_start, DEC);
-
-    // Is timer armed and running?
-    SerialUSB.print(F("A:"));
-    SerialUSB.println(armed, DEC);
-
-    // Has watchdog fired since last start?
-    SerialUSB.print(F("F:"));
-    SerialUSB.println(fired, DEC);
-
-    // How often has the watchdog fired since the last boot/clear?
-    SerialUSB.print(F("L:"));
-    SerialUSB.println(fired_counter, DEC);
-
-    return;
-}
-
-void config(void) {
-  // T: ROM timer start value (active after reset)
-  SerialUSB.print(F("T:"));
-  SerialUSB.println(ROM_TIMER_START, DEC);
-
-  // S: Runtime timer start value (modified by +/-)
-  SerialUSB.print(F("S:"));
-  SerialUSB.println(timer_start, DEC);
-
-  // B: Armed on boot?
-  SerialUSB.print(F("B:"));
-  SerialUSB.println(ARMED_ON_BOOT, DEC);
-
-  // K: Internal Watchdog timer
-  SerialUSB.print(F("K:"));
-  SerialUSB.println(int_wdt, DEC);
-
-  // M: ROM Method of recovery
-  SerialUSB.print(F("M:"));
-  SerialUSB.println(POWER_CYCLE_ON_TIMEOUT, DEC);
-
-  // N: Method of recovery
-  SerialUSB.print(F("N:"));
-  SerialUSB.println(power_cycle_on_timeout, DEC);
-
-  // H: Hardware Pin configuration
-  SerialUSB.print(F("H:"));
-  SerialUSB.print(RESET, DEC);
-  SerialUSB.print(F(","));
-  SerialUSB.print(POWER, DEC);
-  SerialUSB.print(F(","));
-  SerialUSB.println(LED, DEC);
-
-  // I: Hardware Pin States
-  SerialUSB.print(F("I:"));
-  SerialUSB.print(RESET_LINE_ON, DEC);
-  SerialUSB.print(F(","));
-  SerialUSB.print(RESET_LINE_OFF, DEC);
-  SerialUSB.print(F(" "));
-  SerialUSB.print(POWER_LINE_ON, DEC);
-  SerialUSB.print(F(","));
-  SerialUSB.println(POWER_LINE_OFF, DEC);
-
-  // Z: Power cycle timing values
-  SerialUSB.print(F("Z:"));
-  SerialUSB.print(POWER_OFF_TIME, DEC);
-  SerialUSB.print(F(","));
-  SerialUSB.print(POWER_SLEEP_TIME, DEC);
-  SerialUSB.print(F(","));
-  SerialUSB.println(POWER_ON_TIME, DEC);
-
-  // R: Reset timing
-  SerialUSB.print(F("R:"));
-  SerialUSB.println(RESET_TIME, DEC);
-}
 
 void reset_timer(void) {
   if (armed > 0) {
