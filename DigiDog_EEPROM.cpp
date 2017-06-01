@@ -19,7 +19,7 @@ Eeprom_content init_eeprom(void){
 Eeprom_content read_eeprom(void){
   Eeprom_content my_eeprom;
   EEPROM.get(EEPROM_STRUCT_ADDRESS, my_eeprom);
-  if ( my_eeprom.magic == EEPROM_MAGIC ) {
+  if ( my_eeprom.magic == EEPROM_MAGIC && my_eeprom.version == EEPROM_VERSION ) {
     return my_eeprom;
   } else {
     return init_eeprom();
