@@ -9,6 +9,20 @@
 #include <DigiDog_config.h>
 #include <DigiDog_globals.h>
 
+void commands(void){
+  // output supported commands
+
+  // D is for Debug command (also for DANGER! ;))
+  SerialUSB.println(F("W:Warning - be careful with the D: commands."));
+  SerialUSB.println(F("D:fFpP#!<"));
+
+  // E is for Query commands
+  SerialUSB.println(F("E:CSVQ?"));
+
+  // G is for Timer commands
+  SerialUSB.println(F("G:mMRxX0-+*"));
+}
+
 void status(void) {
     // current timer value
     SerialUSB.print(F("C:"));
@@ -16,7 +30,7 @@ void status(void) {
 
     // timer start value
     SerialUSB.print(F("S:"));
-    SerialUSB.println( timer_start, DEC);
+    SerialUSB.println( eeprom.config.timer_start, DEC);
 
     // Is timer armed and running?
     SerialUSB.print(F("A:"));
@@ -26,21 +40,21 @@ void status(void) {
     SerialUSB.print(F("F:"));
     SerialUSB.println(fired, DEC);
 
-    // How often has the watchdog fired since the last boot/clear?
+    // How often has the watchdog fired since the last EEPROM clear?
     SerialUSB.print(F("L:"));
-    SerialUSB.println(fired_counter, DEC);
+    SerialUSB.println(eeprom.counters.fired_counter, DEC);
 
     return;
 }
 
 void config(void) {
-  // T: ROM timer start value (active after reset)
+  // T: ROM timer start value (active after EEPROM reset)
   SerialUSB.print(F("T:"));
   SerialUSB.println(ROM_TIMER_START, DEC);
 
   // S: Runtime timer start value (modified by +/-)
   SerialUSB.print(F("S:"));
-  SerialUSB.println(timer_start, DEC);
+  SerialUSB.println(eeprom.config.timer_start, DEC);
 
   // B: Armed on boot?
   SerialUSB.print(F("B:"));
@@ -56,7 +70,7 @@ void config(void) {
 
   // N: Method of recovery
   SerialUSB.print(F("N:"));
-  SerialUSB.println(power_cycle_on_timeout, DEC);
+  SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
 
   // H: Hardware Pin configuration
   SerialUSB.print(F("H:"));
@@ -87,4 +101,13 @@ void config(void) {
   // R: Reset timing
   SerialUSB.print(F("R:"));
   SerialUSB.println(RESET_TIME, DEC);
+}
+
+void version(void) {
+  SerialUSB.print(F("V:"));
+  SerialUSB.println(VERSION, DEC);
+  SerialUSB.print(F("U:"));
+  SerialUSB.println(UNIT_ID, DEC);
+  SerialUSB.print(F("O:"));
+  SerialUSB.println(eeprom.device.serial, HEX);
 }

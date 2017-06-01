@@ -19,7 +19,7 @@
 #define ARMED_ON_BOOT 0
 
 // ALLOW_... configures, if the respective command is allowed.
-#define ALLOW_FIRED_COUNTER_RESET
+// #define ALLOW_FIRED_COUNTER_RESET
 #define ALLOW_RECOVERY_MODE_CHANGE
 #define ALLOW_DEBUG_RESET
 #define ALLOW_DEBUG_POWER_CYCLE
@@ -57,4 +57,17 @@
 #define TIMER_SET_MIN 100
 #define TIMER_SET_MAX 65000
 
+// EEPROM Magic to detect if flash is initialized - dd09 for DigiDog
+#define EEPROM_MAGIC 0xdd09
+
+// EEPROM Version - will reinit on wrong version
+#define EEPROM_VERSION 1
+
+// EEPROM Struct Address
+#define EEPROM_STRUCT_ADDRESS 0x0
+
 // END OF CONFIGURATION
+
+#define VERSION 2
+#define UNIT_ID 1
+#define DEVICE_SERIAL 0xdeadbeef

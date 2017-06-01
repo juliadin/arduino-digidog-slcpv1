@@ -13,40 +13,43 @@
 #include <DigiDog_globals.h>
 #include <DigiDog_target_commands.hpp>
 #include <DigiDog_output.hpp>
+#include <DigiDog_EEPROM.hpp>
+#include <EEPROM.h>
 
-#define VERSION 2
-#define UNIT_ID 1
-
-unsigned int timer_start=ROM_TIMER_START;
-unsigned int timer=timer_start;
-unsigned int fired_counter = 0;
+unsigned int timer = 0;
 bool fired = 0;
 bool armed = ARMED_ON_BOOT;
-bool power_cycle_on_timeout = POWER_CYCLE_ON_TIMEOUT;
 unsigned int int_wdt = INTERNAL_WATCHDOG_START;
+Eeprom_content eeprom;
 
 void sanitize_timer(void) {
-  if (timer_start < TIMER_SET_MIN){
-    timer_start = TIMER_SET_MIN;
+  bool timer_limited = 0;
+  if (eeprom.config.timer_start < TIMER_SET_MIN){
+    eeprom.config.timer_start = TIMER_SET_MIN;
+    timer_limited = 1;
   }
-  if (timer_start >= TIMER_SET_MAX){
-    timer_start = TIMER_SET_MAX;
+  if (eeprom.config.timer_start >= TIMER_SET_MAX){
+    eeprom.config.timer_start = TIMER_SET_MAX;
+    timer_limited = 1;
+  }
+  if (timer_limited == 0) {
+    // only update eeprom with new timer values if the timer is not maxed out in either
+    // direction. This is to improve flash lifetime
+    update_eeprom();
   }
 }
 
+void update_eeprom(void) {
+  EEPROM.put(EEPROM_STRUCT_ADDRESS, eeprom);
+}
 
 void reset_timer(void) {
   if (armed > 0) {
-    timer = timer_start;
+    timer = eeprom.config.timer_start;
   }
 }
 
-void setup(void) {
-  // Close USB Connection if established
-  SerialUSB.end();
-  // open it again
-  SerialUSB.begin();
-
+void iosetup(void) {
   // Initialize LED
   pinMode(LED, OUTPUT);
   digitalWrite(LED,LOW);
@@ -58,23 +61,24 @@ void setup(void) {
   // Initialize Power line
   pinMode(POWER, OUTPUT);
   digitalWrite(POWER,POWER_LINE_OFF);
+
+  // Close USB Connection if established
+  SerialUSB.end();
+  // open it again
+  SerialUSB.begin();
 }
 
-void commands(void){
-  // output supported commands
+void setup(void) {
+  eeprom = read_eeprom();
+  timer=eeprom.config.timer_start;
 
-  // D is for Debug command (also for DANGER! ;))
-  SerialUSB.println(F("W:Warning - be careful with the D: commands."));
-  SerialUSB.println(F("D:fFpP#!"));
-
-  // E is for Query commands
-  SerialUSB.println(F("E:CSVQ?"));
-
-  // G is for Timer commands
-  SerialUSB.println(F("G:mMRxX0-+*"));
+  iosetup();
 }
+
 
 void loop(void) {
+  // This is to carry over the fired counter in case this is necessary
+  int old_fired_counter = 0;
 
   // Try to read a byte from serial and evaulate
   while (SerialUSB.available() > 0) {
@@ -115,8 +119,26 @@ void loop(void) {
       // force reinit of USB-Stack - also reinitialize all
       // I/O Ports.
       case '!':
-           setup();
+           iosetup();
            break;
+
+      // force reinit of EEPROM from ROM
+      case '<':
+#ifndef ALLOW_FIRED_COUNTER_RESET
+          old_fired_counter = eeprom.counters.fired_counter;
+#endif
+          eeprom = init_eeprom();
+          reset_timer();
+#ifndef ALLOW_FIRED_COUNTER_RESET
+          // if resetting the fired counter is not permitted
+          // carry it over. This might enable an attach with physical access
+          eeprom.counters.fired_counter = old_fired_counter;
+          update_eeprom();
+#endif
+          config();
+          status();
+          break;
+
 
 
       // Timer Commands
@@ -156,9 +178,10 @@ void loop(void) {
       // Reset counter that keeps track of the times the watchdog fired
       case '0':
 #ifdef ALLOW_FIRED_COUNTER_RESET
-           fired_counter=0;
+           eeprom.counters.fired_counter=0;
+           update_eeprom();
            SerialUSB.print(F("L:"));
-           SerialUSB.println(fired_counter, DEC);
+           SerialUSB.println(eeprom.counters.fired_counter, DEC);
 #else
            SerialUSB.println(F("Q:0"));
 #endif
@@ -167,9 +190,10 @@ void loop(void) {
       // change recovery method to "reset"
       case 'm':
 #ifdef ALLOW_RECOVERY_MODE_CHANGE
-           power_cycle_on_timeout = 0;
+           eeprom.config.power_cycle_on_timeout = 0;
            SerialUSB.print(F("N:"));
-           SerialUSB.println(power_cycle_on_timeout, DEC);
+           SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
+           update_eeprom();
 #else
            SerialUSB.println(F("Q:m"));
 #endif
@@ -178,9 +202,10 @@ void loop(void) {
       // Change recovery method to "power-cycle"
       case 'M':
 #ifdef ALLOW_RECOVERY_MODE_CHANGE
-           power_cycle_on_timeout = 1;
+           eeprom.config.power_cycle_on_timeout = 1;
            SerialUSB.print(F("N:"));
-           SerialUSB.println(power_cycle_on_timeout, DEC);
+           SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
+           update_eeprom();
 #else
            SerialUSB.println(F("Q:M"));
 #endif
@@ -189,11 +214,11 @@ void loop(void) {
       // Decrement timer start value
       case '-':
 #ifdef ALLOW_TIMER_CHANGE
-           timer_start = timer_start - TIMER_SET_STEP;
+           eeprom.config.timer_start = eeprom.config.timer_start - TIMER_SET_STEP;
            sanitize_timer();
            reset_timer();
            SerialUSB.print(F("S:"));
-           SerialUSB.println(timer_start, DEC);
+           SerialUSB.println(eeprom.config.timer_start, DEC);
 #else
            SerialUSB.println(F("Q:-"));
 #endif
@@ -202,11 +227,11 @@ void loop(void) {
       // Increment timer start value
       case '+':
 #ifdef ALLOW_TIMER_CHANGE
-           timer_start = timer_start + TIMER_SET_STEP;
+           eeprom.config.timer_start = eeprom.config.timer_start + TIMER_SET_STEP;
            sanitize_timer();
            reset_timer();
            SerialUSB.print(F("S:"));
-           SerialUSB.println(timer_start, DEC);
+           SerialUSB.println(eeprom.config.timer_start, DEC);
 #else
            SerialUSB.println(F("Q:+"));
 #endif
@@ -226,11 +251,8 @@ void loop(void) {
 
       // output Version and device identifier
       case 'V':
-           SerialUSB.print(F("V:"));
-           SerialUSB.println(VERSION, DEC);
-           SerialUSB.print(F("U:"));
-           SerialUSB.println(UNIT_ID, DEC);
-           break;
+          version();
+          break;
 
       // Output all the commands that are forbidden by firmeware configuration
       // to establish a "End of list" marker, this always ends with the message
@@ -286,7 +308,7 @@ void loop(void) {
     if (timer == 0) {
 
       // if power_cycle_on_timeout is set power cycle the target, use reset otherwise
-      if ( power_cycle_on_timeout > 0 ) {
+      if ( eeprom.config.power_cycle_on_timeout > 0 ) {
         power_cycle_target();
       } else {
         reset_target();
@@ -299,8 +321,9 @@ void loop(void) {
       fired = 1;
 
       // increment fired counter if it is not overflowing
-      if (fired_counter < 65535) {
-        fired_counter++;
+      if (eeprom.counters.fired_counter < 65535) {
+        eeprom.counters.fired_counter++;
+        update_eeprom();
       }
     } else {
       timer--;
