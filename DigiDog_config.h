@@ -26,6 +26,7 @@
 //#define ALLOW_DEBUG_WATCHDOG_REBOOT
 #define ALLOW_TIMER_CHANGE
 //#define ALLOW_TIMER_STOP
+#define ALLOW_EEPROM_UPDATE
 
 // Board configuration. If your LED does not start to blink after enabling watchdog
 // swap try 0 or 1 for LED and adjust the other settings

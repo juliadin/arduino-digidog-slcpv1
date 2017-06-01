@@ -13,8 +13,7 @@ void commands(void){
   // output supported commands
 
   // D is for Debug command (also for DANGER! ;))
-  SerialUSB.println(F("W:Warning - be careful with the D: commands."));
-  SerialUSB.println(F("D:fFpP#!<"));
+  SerialUSB.println(F("D:fFpP#!<>"));
 
   // E is for Query commands
   SerialUSB.println(F("E:CSVQ?"));
