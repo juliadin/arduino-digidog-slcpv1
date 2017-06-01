@@ -25,7 +25,7 @@ void commands(void){
 void status(void) {
   // current timer value
   SerialUSB.print(F("C:"));
-  SerialUSB.println( timer, DEC);
+  SerialUSB.println( state.timer, DEC);
 
   // timer start value
   SerialUSB.print(F("S:"));
@@ -33,11 +33,11 @@ void status(void) {
 
   // Is timer armed and running?
   SerialUSB.print(F("A:"));
-  SerialUSB.println(armed, DEC);
+  SerialUSB.println(state.armed, DEC);
 
   // Has watchdog fired since last start?
   SerialUSB.print(F("F:"));
-  SerialUSB.println(fired, DEC);
+  SerialUSB.println(state.fired, DEC);
 
   // How often has the watchdog fired since the last EEPROM clear?
   SerialUSB.print(F("L:"));
@@ -61,7 +61,7 @@ void config(void) {
 
   // K: Internal Watchdog timer
   SerialUSB.print(F("K:"));
-  SerialUSB.println(int_wdt, DEC);
+  SerialUSB.println(state.int_wdt, DEC);
 
   // M: ROM Method of recovery
   SerialUSB.print(F("M:"));

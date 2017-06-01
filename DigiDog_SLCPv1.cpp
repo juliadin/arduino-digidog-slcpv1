@@ -16,11 +16,8 @@
 #include <DigiDog_EEPROM.hpp>
 #include <EEPROM.h>
 
-unsigned int timer = 0;
-bool fired = 0;
-bool armed = ARMED_ON_BOOT;
-unsigned int int_wdt = INTERNAL_WATCHDOG_START;
 Eeprom_content eeprom;
+State_content state;
 
 void sanitize_timer(void) {
   bool timer_limited = 0;
@@ -43,8 +40,8 @@ void update_eeprom(void) {
 }
 
 void reset_timer(void) {
-  if (armed > 0) {
-    timer = eeprom.config.timer_start;
+  if (state.armed > 0) {
+    state.timer = eeprom.config.timer_start;
   }
 }
 
@@ -70,7 +67,11 @@ void iosetup(void) {
 
 void setup(void) {
   eeprom = read_eeprom();
-  timer=eeprom.config.timer_start;
+  state.armed = ARMED_ON_BOOT;
+  state.fired = 0;
+  state.timer = 0;
+  state.int_wdt = INTERNAL_WATCHDOG_START;
+  state.timer=eeprom.config.timer_start;
 
   iosetup();
 }
@@ -155,8 +156,8 @@ void loop(void) {
 
       // reduce a running timer to minimum, output status
       case '*':
-        if (armed > 0) {
-          timer = TIMER_SET_MIN;
+        if (state.armed > 0) {
+          state.timer = TIMER_SET_MIN;
         }
         status();
         break;
@@ -165,7 +166,8 @@ void loop(void) {
       case 'x':
 #ifdef ALLOW_TIMER_STOP
         reset_timer();
-        armed = 0;
+        state.armed = 0;
+        update_state();
 #else
         SerialUSB.println(F("Q:x"));
 #endif
@@ -174,9 +176,9 @@ void loop(void) {
 
       // arm watchdog, reset and start timer
       case 'X':
-        armed = 1;
+        state.armed = 1;
         reset_timer();
-        fired = 0;
+        state.fired = 0;
         status();
         break;
 
@@ -308,18 +310,18 @@ void loop(void) {
     }
 
     // Reset the watchdog on serial ingress communication
-    int_wdt=INTERNAL_WATCHDOG_START;
+    state.int_wdt=INTERNAL_WATCHDOG_START;
     digitalWrite(LED,LOW);
   }
 
   // decrement internal watchdog to reset USB Stack when device was not spoken to for a long time
   // this assumes that the internal USB stack is less stable than it should be and to recover from user error
   // on remote devices.
-  int_wdt--;
+  state.int_wdt--;
 
   // If the timer is armed, run timer routine
-  if (armed > 0) {
-    if (timer == 0) {
+  if ( state.armed > 0) {
+    if (state.timer == 0) {
 
       // if power_cycle_on_timeout is set power cycle the target, use reset otherwise
       if ( eeprom.config.power_cycle_on_timeout > 0 ) {
@@ -329,10 +331,10 @@ void loop(void) {
       }
 
       // Disable Watchdog after it fired
-      armed = 0;
+      state.armed = 0;
 
       // Set "fired" bit
-      fired = 1;
+      state.fired = 1;
 
       // increment fired counter if it is not overflowing
       if (eeprom.counters.fired_counter < 65535) {
@@ -340,7 +342,7 @@ void loop(void) {
         update_eeprom();
       }
     } else {
-      timer--;
+      state.timer--;
     }
     // toggle LED while timer is running
     digitalWrite(LED, !digitalRead(LED));
@@ -352,7 +354,7 @@ void loop(void) {
     digitalWrite(LED, LOW);
   }
   SerialUSB.delay(100);
-  if (int_wdt == 0) {
+  if (state.int_wdt == 0) {
     setup();
   }
 }

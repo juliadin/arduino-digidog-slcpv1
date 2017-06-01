@@ -60,15 +60,11 @@
 
 // EEPROM Magic to detect if flash is initialized - dd09 for DigiDog
 #define EEPROM_MAGIC 0xdd09
-
-// EEPROM Version - will reinit on wrong version
 #define EEPROM_VERSION 1
-
-// EEPROM Struct Address
-#define EEPROM_STRUCT_ADDRESS 0x0
+#define EEPROM_STRUCT_ADDRESS 0x00
 
 // END OF CONFIGURATION
 
 #define VERSION 2
 #define UNIT_ID 1
-#define DEVICE_SERIAL 0xdeadbeef
+#define DEVICE_SERIAL 0x10000001

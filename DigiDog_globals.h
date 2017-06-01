@@ -21,10 +21,14 @@ typedef struct Eeprom_content_struct {
   } device;
 } Eeprom_content;
 
+typedef struct State_content_struct {
+    bool armed;
+    bool fired;
+    unsigned int timer;
+    unsigned int int_wdt;
+} State_content;
+
 #endif
 
-extern unsigned int timer;
-extern bool fired;
-extern bool armed;
-extern unsigned int int_wdt;
 extern Eeprom_content eeprom;
+extern State_content state;
