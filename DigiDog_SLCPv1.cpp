@@ -75,7 +75,6 @@ void setup(void) {
   iosetup();
 }
 
-
 void loop(void) {
   // This is to carry over the fired counter in case this is necessary
   int old_fired_counter = 0;
@@ -90,221 +89,223 @@ void loop(void) {
       // force reset trigger
       case 'F':
 #ifdef ALLOW_DEBUG_RESET
-          SerialUSB.println(F("W:RST"));
-          reset_target();
+        SerialUSB.println(F("W:RST"));
+        reset_target();
 #else
-          SerialUSB.println(F("Q:F"));
+        SerialUSB.println(F("Q:F"));
 #endif
-          break;
+        break;
+
       // force power cycle trigger
       case 'P':
 #ifdef ALLOW_DEBUG_POWER_CYCLE
-          SerialUSB.println(F("W:PWR"));
-          power_cycle_target();
+        SerialUSB.println(F("W:PWR"));
+        power_cycle_target();
 #else
-          SerialUSB.println(F("Q:P"));
+        SerialUSB.println(F("Q:P"));
 #endif
-          break;
+        break;
 
       // force watchdog device reboot
       //  !! do not use for firmware update !!
       case '#':
 #ifdef ALLOW_DEBUG_WATCHDOG_REBOOT
-          DigisparkReset();
+        DigisparkReset();
 #else
-          SerialUSB.println(F("Q:#"));
+        SerialUSB.println(F("Q:#"));
 #endif
-          break;
+        break;
 
       // force reinit of USB-Stack - also reinitialize all
       // I/O Ports.
       case '!':
-          iosetup();
-          break;
+        iosetup();
+        break;
 
       // force reinit of EEPROM from ROM
       case '<':
 #ifndef ALLOW_FIRED_COUNTER_RESET
-          old_fired_counter = eeprom.counters.fired_counter;
+        old_fired_counter = eeprom.counters.fired_counter;
 #endif
-          eeprom = init_eeprom();
-          reset_timer();
+        eeprom = init_eeprom();
+        reset_timer();
 #ifndef ALLOW_FIRED_COUNTER_RESET
-          // if resetting the fired counter is not permitted
-          // carry it over. This might enable an attach with physical access
-          eeprom.counters.fired_counter = old_fired_counter;
-          update_eeprom();
+        // if resetting the fired counter is not permitted
+        // carry it over. This might enable an attach with physical access
+        eeprom.counters.fired_counter = old_fired_counter;
+        update_eeprom();
 #endif
-          SerialUSB.println(F("P:<"));
-          config();
-          status();
-          break;
+        SerialUSB.println(F("P:<"));
+        config();
+        status();
+        break;
+
        // force writing current runtime configuration to EEPROM
-       case '>':
+      case '>':
 #ifdef ALLOW_EEPROM_UPDATE
-          update_eeprom();
-          SerialUSB.println(F("P:>"));
+        update_eeprom();
+        SerialUSB.println(F("P:>"));
 #else
-          SerialUSB.println(F("Q:>"));
+        SerialUSB.println(F("Q:>"));
 #endif
-          break;
-
-
+        break;
 
 
       // Timer Commands
 
       // reduce a running timer to minimum, output status
       case '*':
-          if (armed > 0) {
-             timer = TIMER_SET_MIN;
-          }
-          status();
-          break;
+        if (armed > 0) {
+          timer = TIMER_SET_MIN;
+        }
+        status();
+        break;
 
       // reset timer and disarm Watchdog
       case 'x':
 #ifdef ALLOW_TIMER_STOP
-          reset_timer();
-          armed = 0;
+        reset_timer();
+        armed = 0;
 #else
-          SerialUSB.println(F("Q:x"));
+        SerialUSB.println(F("Q:x"));
 #endif
-          status();
-          break;
+        status();
+        break;
 
       // arm watchdog, reset and start timer
       case 'X':
-          armed = 1;
-          reset_timer();
-          fired = 0;
-          status();
-          break;
+        armed = 1;
+        reset_timer();
+        fired = 0;
+        status();
+        break;
 
       // Reset timer. to
       case 'R':
-          reset_timer();
-          SerialUSB.println(F("P:R"));
-          break;
+        reset_timer();
+        SerialUSB.println(F("P:R"));
+        break;
 
       // Reset counter that keeps track of the times the watchdog fired
       case '0':
 #ifdef ALLOW_FIRED_COUNTER_RESET
-           eeprom.counters.fired_counter=0;
-           update_eeprom();
-           SerialUSB.print(F("L:"));
-           SerialUSB.println(eeprom.counters.fired_counter, DEC);
+        eeprom.counters.fired_counter=0;
+        update_eeprom();
+        SerialUSB.print(F("L:"));
+        SerialUSB.println(eeprom.counters.fired_counter, DEC);
 #else
-           SerialUSB.println(F("Q:0"));
+        SerialUSB.println(F("Q:0"));
 #endif
-           break;
+        break;
 
       // change recovery method to "reset"
       case 'm':
 #ifdef ALLOW_RECOVERY_MODE_CHANGE
-          eeprom.config.power_cycle_on_timeout = 0;
-          SerialUSB.print(F("N:"));
-          SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
+        eeprom.config.power_cycle_on_timeout = 0;
+        SerialUSB.print(F("N:"));
+        SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
 #else
-          SerialUSB.println(F("Q:m"));
+        SerialUSB.println(F("Q:m"));
 #endif
-          break;
+        break;
 
       // Change recovery method to "power-cycle"
       case 'M':
 #ifdef ALLOW_RECOVERY_MODE_CHANGE
-          eeprom.config.power_cycle_on_timeout = 1;
-          SerialUSB.print(F("N:"));
-          SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
+        eeprom.config.power_cycle_on_timeout = 1;
+        SerialUSB.print(F("N:"));
+        SerialUSB.println(eeprom.config.power_cycle_on_timeout, DEC);
 #else
-          SerialUSB.println(F("Q:M"));
+        SerialUSB.println(F("Q:M"));
 #endif
-          break;
+        break;
 
       // Decrement timer start value
       case '-':
 #ifdef ALLOW_TIMER_CHANGE
-          eeprom.config.timer_start = eeprom.config.timer_start - TIMER_SET_STEP;
-          sanitize_timer();
-          reset_timer();
-          SerialUSB.print(F("S:"));
-          SerialUSB.println(eeprom.config.timer_start, DEC);
+        eeprom.config.timer_start = eeprom.config.timer_start - TIMER_SET_STEP;
+        sanitize_timer();
+        reset_timer();
+        SerialUSB.print(F("S:"));
+        SerialUSB.println(eeprom.config.timer_start, DEC);
 #else
-          SerialUSB.println(F("Q:-"));
+        SerialUSB.println(F("Q:-"));
 #endif
-          break;
+        break;
 
       // Increment timer start value
       case '+':
 #ifdef ALLOW_TIMER_CHANGE
-          eeprom.config.timer_start = eeprom.config.timer_start + TIMER_SET_STEP;
-          sanitize_timer();
-          reset_timer();
-          SerialUSB.print(F("S:"));
-          SerialUSB.println(eeprom.config.timer_start, DEC);
+        eeprom.config.timer_start = eeprom.config.timer_start + TIMER_SET_STEP;
+        sanitize_timer();
+        reset_timer();
+        SerialUSB.print(F("S:"));
+        SerialUSB.println(eeprom.config.timer_start, DEC);
 #else
-          SerialUSB.println(F("Q:+"));
+        SerialUSB.println(F("Q:+"));
 #endif
-          break;
+        break;
 
       // Query commands
 
       // output firmware and current configuration
       case 'C':
-          config();
-          break;
+        config();
+        break;
 
       // output operational status
       case 'S':
-          status();
-          break;
+        status();
+        break;
 
       // output Version and device identifier
       case 'V':
-          version();
-          break;
+        version();
+        break;
 
       // Output all the commands that are forbidden by firmeware configuration
       // to establish a "End of list" marker, this always ends with the message
       // that this command itself is forbidden
       case 'Q':
 #ifndef ALLOW_TIMER_CHANGE
-          SerialUSB.println(F("Q:-"));
-          SerialUSB.println(F("Q:+"));
+        SerialUSB.println(F("Q:-"));
+        SerialUSB.println(F("Q:+"));
 #endif
 #ifndef ALLOW_DEBUG_RESET
-          SerialUSB.println(F("Q:F"));
+        SerialUSB.println(F("Q:F"));
 #endif
 #ifndef ALLOW_DEBUG_POWER_CYCLE
-          SerialUSB.println(F("Q:P"));
+        SerialUSB.println(F("Q:P"));
 #endif
 #ifndef ALLOW_RECOVERY_MODE_CHANGE
-          SerialUSB.println(F("Q:m"));
-          SerialUSB.println(F("Q:M"));
+        SerialUSB.println(F("Q:m"));
+        SerialUSB.println(F("Q:M"));
 #endif
 #ifndef ALLOW_FIRED_COUNTER_RESET
-          SerialUSB.println(F("Q:0"));
+        SerialUSB.println(F("Q:0"));
 #endif
 #ifndef ALLOW_DEBUG_WATCHDOG_REBOOT
-          SerialUSB.println(F("Q:#"));
+        SerialUSB.println(F("Q:#"));
 #endif
 #ifndef ALLOW_TIMER_STOP
-          SerialUSB.println(F("Q:x"));
+        SerialUSB.println(F("Q:x"));
 #endif
 #ifndef ALLOW_EEPROM_UPDATE
-          SerialUSB.println(F("Q:>"));
+        SerialUSB.println(F("Q:>"));
 #endif
-          SerialUSB.println(F("Q:Q"));
-          break;
-      case '?':
-          commands();
-          break;
-      default:
-          SerialUSB.print(F("X:"));
-          SerialUSB.println(input, DEC);
-          break;
-    }
+        SerialUSB.println(F("Q:Q"));
+        break;
 
+      // Output (supported command discovery)
+      case '?':
+        commands();
+        break;
+
+      default:
+        SerialUSB.print(F("X:"));
+        SerialUSB.println(input, DEC);
+        break;
+    }
 
     // Reset the watchdog on serial ingress communication
     int_wdt=INTERNAL_WATCHDOG_START;

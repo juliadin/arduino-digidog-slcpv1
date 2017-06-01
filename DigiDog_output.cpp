@@ -23,27 +23,27 @@ void commands(void){
 }
 
 void status(void) {
-    // current timer value
-    SerialUSB.print(F("C:"));
-    SerialUSB.println( timer, DEC);
+  // current timer value
+  SerialUSB.print(F("C:"));
+  SerialUSB.println( timer, DEC);
 
-    // timer start value
-    SerialUSB.print(F("S:"));
-    SerialUSB.println( eeprom.config.timer_start, DEC);
+  // timer start value
+  SerialUSB.print(F("S:"));
+  SerialUSB.println( eeprom.config.timer_start, DEC);
 
-    // Is timer armed and running?
-    SerialUSB.print(F("A:"));
-    SerialUSB.println(armed, DEC);
+  // Is timer armed and running?
+  SerialUSB.print(F("A:"));
+  SerialUSB.println(armed, DEC);
 
-    // Has watchdog fired since last start?
-    SerialUSB.print(F("F:"));
-    SerialUSB.println(fired, DEC);
+  // Has watchdog fired since last start?
+  SerialUSB.print(F("F:"));
+  SerialUSB.println(fired, DEC);
 
-    // How often has the watchdog fired since the last EEPROM clear?
-    SerialUSB.print(F("L:"));
-    SerialUSB.println(eeprom.counters.fired_counter, DEC);
+  // How often has the watchdog fired since the last EEPROM clear?
+  SerialUSB.print(F("L:"));
+  SerialUSB.println(eeprom.counters.fired_counter, DEC);
 
-    return;
+  return;
 }
 
 void config(void) {

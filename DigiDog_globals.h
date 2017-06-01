@@ -19,7 +19,7 @@ typedef struct Eeprom_content_struct {
   struct device {
     unsigned long serial;
   } device;
-} Eeprom_content ;
+} Eeprom_content;
 
 #endif
 
