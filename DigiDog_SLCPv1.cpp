@@ -167,7 +167,7 @@ void loop(void) {
 #ifdef ALLOW_TIMER_STOP
         reset_timer();
         state.armed = 0;
-        update_state();
+        update_eeprom();
 #else
         SerialUSB.println(F("Q:x"));
 #endif
