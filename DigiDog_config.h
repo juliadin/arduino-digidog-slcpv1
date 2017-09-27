@@ -14,10 +14,6 @@
 // 1 - power cycle is triggered on timeout (DigiDog MUST be on 5VSB+ otherwise the device won't turn on again)
 #define POWER_CYCLE_ON_TIMEOUT 0
 
-// ARMED_ON_BOOT decides if the module should boot armed or not. It is recommended to start the module unarmed and enable it once the system
-// has booted. Please note that the timer needs to be disabled on reboot/shutdown of the target, so it does not reset a rebooting system
-#define ARMED_ON_BOOT 0
-
 // ALLOW_... configures, if the respective command is allowed.
 // #define ALLOW_FIRED_COUNTER_RESET
 #define ALLOW_RECOVERY_MODE_CHANGE
@@ -25,7 +21,7 @@
 #define ALLOW_DEBUG_POWER_CYCLE
 //#define ALLOW_DEBUG_WATCHDOG_REBOOT
 #define ALLOW_TIMER_CHANGE
-//#define ALLOW_TIMER_STOP
+//#define ALLOW_TIMER_STOP  // means that timer can not be stopped if locked with "L" command
 #define ALLOW_EEPROM_UPDATE
 
 // Board configuration. If your LED does not start to blink after enabling watchdog

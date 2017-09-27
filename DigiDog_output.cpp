@@ -47,10 +47,6 @@ void config(void) {
   SerialUSB.print(F("S:"));
   SerialUSB.println(eeprom.config.timer_start, DEC);
 
-  // B: Armed on boot?
-  SerialUSB.print(F("B:"));
-  SerialUSB.println(ARMED_ON_BOOT, DEC);
-
   // K: Internal Watchdog timer
   SerialUSB.print(F("K:"));
   SerialUSB.println(state.int_wdt, DEC);

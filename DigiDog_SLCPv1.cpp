@@ -67,7 +67,7 @@ void iosetup(void) {
 
 void setup(void) {
   eeprom = read_eeprom();
-  state.armed = ARMED_ON_BOOT;
+  state.armed = 0;
   state.fired = 0;
   state.timer = 0;
   state.locked = 0;
