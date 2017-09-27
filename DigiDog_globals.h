@@ -24,6 +24,7 @@ typedef struct Eeprom_content_struct {
 typedef struct State_content_struct {
     bool armed;
     bool fired;
+    bool locked;
     unsigned int timer;
     unsigned int int_wdt;
 } State_content;

@@ -70,6 +70,7 @@ void setup(void) {
   state.armed = ARMED_ON_BOOT;
   state.fired = 0;
   state.timer = 0;
+  state.locked = 0;
   state.int_wdt = INTERNAL_WATCHDOG_START;
   state.timer=eeprom.config.timer_start;
 
@@ -162,15 +163,24 @@ void loop(void) {
         status();
         break;
 
+      case 'L':
+#ifndef ALLOW_TIMER_STOP
+        state.locked = 1;
+        SerialUSB.println(F("P:L"));
+#else
+        SerialUSB.println(F("Q:L"));
+#endif
+        break;
+
       // reset timer and disarm Watchdog
       case 'x':
-#ifdef ALLOW_TIMER_STOP
-        reset_timer();
-        state.armed = 0;
-        update_eeprom();
-#else
-        SerialUSB.println(F("Q:x"));
-#endif
+        if ( state.locked == 0) {
+          reset_timer();
+          state.armed = 0;
+          update_eeprom();
+        } else {
+          SerialUSB.println(F("Q:x"));
+        }
         status();
         break;
 
@@ -296,11 +306,6 @@ void loop(void) {
         SerialUSB.println(F("Q:>"));
 #endif
         SerialUSB.println(F("Q:Q"));
-        break;
-
-      // Output (supported command discovery)
-      case '?':
-        commands();
         break;
 
       default:

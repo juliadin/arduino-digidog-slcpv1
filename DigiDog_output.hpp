@@ -5,5 +5,4 @@
 
 void status(void);
 void config(void);
-void commands(void);
 void version(void);

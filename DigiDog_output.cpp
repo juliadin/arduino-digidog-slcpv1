@@ -9,18 +9,6 @@
 #include <DigiDog_config.h>
 #include <DigiDog_globals.h>
 
-void commands(void){
-  // output supported commands
-
-  // D is for Debug command (also for DANGER! ;))
-  SerialUSB.println(F("D:fFpP#!<>"));
-
-  // E is for Query commands
-  SerialUSB.println(F("E:CSVQ?"));
-
-  // G is for Timer commands
-  SerialUSB.println(F("G:mMRxX0-+*"));
-}
 
 void status(void) {
   // current timer value
@@ -38,6 +26,10 @@ void status(void) {
   // Has watchdog fired since last start?
   SerialUSB.print(F("F:"));
   SerialUSB.println(state.fired, DEC);
+
+  // Is the watchdog timer locked?
+  SerialUSB.print(F("J:"));
+  SerialUSB.println(state.locked, DEC);
 
   // How often has the watchdog fired since the last EEPROM clear?
   SerialUSB.print(F("L:"));
