@@ -74,6 +74,17 @@ class DigiDog(object):
         else:
             raise NotImplementedError("Not impelemted in protocol version {} supported by device.".format(version))
 
+    def arm():
+        """Arm timer by starting it. It may be disallowed to stop it again depending on firmware configuration"""
+        pass
+
+    def disarm():
+        """Disarm timer, if it is allowed"""
+        pass
+
+    def trigger():
+        pass
+
 
 def calculate_bounds(reset_interval, target_timeout):
     """Calculate a range for the point in time when to reset watchdog."""
