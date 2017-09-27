@@ -17,11 +17,9 @@
 // ALLOW_... configures, if the respective command is allowed.
 // #define ALLOW_FIRED_COUNTER_RESET
 #define ALLOW_RECOVERY_MODE_CHANGE
-#define ALLOW_DEBUG_RESET
-#define ALLOW_DEBUG_POWER_CYCLE
-//#define ALLOW_DEBUG_WATCHDOG_REBOOT
+// #define ALLOW_DEBUG
 #define ALLOW_TIMER_CHANGE
-//#define ALLOW_TIMER_STOP  // means that timer can not be stopped if locked with "L" command
+// #define ALLOW_TIMER_STOP  // means that timer can not be stopped if locked with "L" command
 #define ALLOW_EEPROM_UPDATE
 
 // Board configuration. If your LED does not start to blink after enabling watchdog

@@ -90,7 +90,7 @@ void loop(void) {
 
       // force reset trigger
       case 'F':
-#ifdef ALLOW_DEBUG_RESET
+#ifdef ALLOW_DEBUG
         SerialUSB.println(F("W:RST"));
         reset_target();
 #else
@@ -100,7 +100,7 @@ void loop(void) {
 
       // force power cycle trigger
       case 'P':
-#ifdef ALLOW_DEBUG_POWER_CYCLE
+#ifdef ALLOW_DEBUG
         SerialUSB.println(F("W:PWR"));
         power_cycle_target();
 #else
@@ -111,7 +111,7 @@ void loop(void) {
       // force watchdog device reboot
       //  !! do not use for firmware update !!
       case '#':
-#ifdef ALLOW_DEBUG_WATCHDOG_REBOOT
+#ifdef ALLOW_DEBUG
         DigisparkReset();
 #else
         SerialUSB.println(F("Q:#"));
@@ -283,10 +283,10 @@ void loop(void) {
         SerialUSB.println(F("Q:-"));
         SerialUSB.println(F("Q:+"));
 #endif
-#ifndef ALLOW_DEBUG_RESET
+#ifndef ALLOW_DEBUG
         SerialUSB.println(F("Q:F"));
 #endif
-#ifndef ALLOW_DEBUG_POWER_CYCLE
+#ifndef ALLOW_DEBUG
         SerialUSB.println(F("Q:P"));
 #endif
 #ifndef ALLOW_RECOVERY_MODE_CHANGE
@@ -296,7 +296,7 @@ void loop(void) {
 #ifndef ALLOW_FIRED_COUNTER_RESET
         SerialUSB.println(F("Q:0"));
 #endif
-#ifndef ALLOW_DEBUG_WATCHDOG_REBOOT
+#ifndef ALLOW_DEBUG
         SerialUSB.println(F("Q:#"));
 #endif
 #ifndef ALLOW_TIMER_STOP
