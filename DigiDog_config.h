@@ -25,7 +25,7 @@
 #define ALLOW_DEBUG_POWER_CYCLE
 //#define ALLOW_DEBUG_WATCHDOG_REBOOT
 #define ALLOW_TIMER_CHANGE
-#define ALLOW_TIMER_STOP
+//#define ALLOW_TIMER_STOP
 #define ALLOW_EEPROM_UPDATE
 
 // Board configuration. If your LED does not start to blink after enabling watchdog
@@ -67,4 +67,4 @@
 
 #define VERSION 2
 #define UNIT_ID 1
-#define DEVICE_SERIAL 0x10000001
+#define DEVICE_SERIAL 0x10000002

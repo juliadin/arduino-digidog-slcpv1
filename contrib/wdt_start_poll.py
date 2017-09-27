@@ -5,13 +5,14 @@ import serial
 import time
 import sys
 
-WDT_DEVICE="/dev/ttyACM0"
+WDT_DEVICE = "/dev/ttyACM0"
 
-interval=60
-target=120
+interval = 60
+target = 120
 
 
-def calculate_bounds( reset_interval, target_timeout ):
+def calculate_bounds(reset_interval, target_timeout):
+    """Calculate a range for the point in time when to reset watchdog."""
     upper_bound = target_timeout + reset_interval
     lower_bound = target_timeout - reset_interval
     if lower_bound < 30:
@@ -19,22 +20,24 @@ def calculate_bounds( reset_interval, target_timeout ):
     if lower_bound > upper_bound:
         lower_bound = upper_bound
         upper_bound = upper_bound + reset_interval
-    return [ lower_bound, upper_bound ]
+    return [lower_bound, upper_bound]
 
-def blocked_commands( device ):
-    version_ok=False
+
+def blocked_commands(device):
+    """Request blocked commands device. Returns a list of Strings."""
+    version_ok = False
     these_blocked_cmds = []
     with serial.Serial(device, 9600, xonxoff=False, rtscts=False, timeout=1) as this_wdt_dev:
         this_wdt_dev.write("V")
-        for sline in lines_from_device( this_wdt_dev ):
+        for sline in lines_from_device(this_wdt_dev):
             if sline.startswith("V:"):
                 if sline.split("V:")[1].strip() >= "2":
-                    version_ok=True
+                    version_ok = True
                 else:
-                    version_ok=False
+                    version_ok = False
         if version_ok:
             this_wdt_dev.write("Q")
-            for sline in lines_from_device( this_wdt_dev ):
+            for sline in lines_from_device(this_wdt_dev):
                 if sline.startswith("Q:"):
                     command = sline.split(":")[1].strip()
                     if not command == "Q":
@@ -44,7 +47,8 @@ def blocked_commands( device ):
     return these_blocked_cmds
 
 
-def lines_from_device( device ):
+def lines_from_device(device):
+    """Read all available lines from a serial device and return list of strings."""
     timeout = False
     data = ""
     while not timeout:
@@ -53,14 +57,15 @@ def lines_from_device( device ):
             timeout = True
         else:
             data = data + curr
-    lines = [ x for x in data.split("\n") if x != "" ]
+    lines = [x for x in data.split("\n") if x != ""]
     return lines
+
 
 detected = False
 try:
     with serial.Serial(WDT_DEVICE, 9600, xonxoff=False, rtscts=False, timeout=1) as wdt_dev:
         wdt_dev.write("V")
-        for line in lines_from_device( wdt_dev ):
+        for line in lines_from_device(wdt_dev):
             if line.startswith("V:"):
                 if line.split("V:")[1].strip() >= "1":
                     print "Detected protocol version >=1.0 Watchdog on port {}".format(WDT_DEVICE)
@@ -77,29 +82,29 @@ try:
         if not detected:
             sys.exit(1)
         wdt_dev.write("C")
-        for line in lines_from_device( wdt_dev ):
+        for line in lines_from_device(wdt_dev):
             if line.startswith("N:"):
                 if line.split("N:")[1].strip() == "1":
                     method = "power cycle"
                 else:
                     method = "reset"
-                print "The device is configured to recover the system by {}".format( method )
+                print "The device is configured to recover the system by {}".format(method)
         wdt_dev.write("S")
-        for line in lines_from_device( wdt_dev ):
+        for line in lines_from_device(wdt_dev):
             if line.startswith("F:"):
                 if line.split(":")[1].strip() == "1":
                     print "Watchdog fired since last activation"
                 else:
                     print "Watchdog did not fire since last activation"
         wdt_dev.write("X")
-        for line in lines_from_device( wdt_dev ):
+        for line in lines_from_device(wdt_dev):
             if line.startswith("A:"):
                 if line.split(":")[1].strip() == "1":
                     print "Watchdog successfully enabled"
                 else:
                     print "Failed to enable watchdog"
             elif line.startswith("S:"):
-                print "Timeout approximately {}s".format( int(int(line.split(":")[1])/10) )
+                print "Timeout approximately {}s".format(int(int(line.split(":")[1])/10))
     blocked_cmds = blocked_commands(WDT_DEVICE)
     if "-" in blocked_cmds or "+" in blocked_cmds:
         print "Device forbids adjusting the watchdog - disabled"
@@ -114,22 +119,22 @@ try:
 
     notice_disable_adjust = True
 
-    ## Loop for resetting the watchdog
+    # Loop for resetting the watchdog
     while True:
-        lower, upper = calculate_bounds( interval, target )
+        lower, upper = calculate_bounds(interval, target)
         with serial.Serial(WDT_DEVICE, 9600, xonxoff=False, rtscts=False, timeout=1) as wdt_dev:
             wdt_dev.write("S")
             print "resetting timer..."
             wdt_dev.write("R")
-            for line in lines_from_device( wdt_dev ):
+            for line in lines_from_device(wdt_dev):
                 if line.startswith("C:"):
-                    print "Time left was approximately {}s".format( int(int(line.split(":")[1])/10) )
+                    print "Time left was approximately {}s".format(int(int(line.split(":")[1])/10))
                     if not disable_adjust:
                         if int(int(line.split(":")[1])/10) > upper:
                             wdt_dev.write("-")
                         if int(int(line.split(":")[1])/10) < lower:
                             wdt_dev.write("+")
-                        for iline in lines_from_device( wdt_dev ):
+                        for iline in lines_from_device(wdt_dev):
                             if iline.startswith("S:"):
                                 new_time = int(int(iline.split(":")[1])/10)
                                 print "Adjusted watchdog to {}s. target is {}s".format(new_time, target)
@@ -143,7 +148,7 @@ try:
 except KeyboardInterrupt:
     with serial.Serial(WDT_DEVICE, 9600, xonxoff=False, rtscts=False, timeout=1) as wdt_dev:
         wdt_dev.write("x")
-        for line in lines_from_device( wdt_dev ):
+        for line in lines_from_device(wdt_dev):
             if line.startswith("A:"):
                 if line.split(":")[1].strip() == "0":
                     print "Watchdog successfully disabled"
