@@ -70,7 +70,6 @@ void setup(void) {
   state.armed = 0;
   state.fired = 0;
   state.timer = 0;
-  state.locked = 0;
   state.int_wdt = INTERNAL_WATCHDOG_START;
   state.timer=eeprom.config.timer_start;
 
@@ -80,6 +79,7 @@ void setup(void) {
 void loop(void) {
   // This is to carry over the fired counter in case this is necessary
   int old_fired_counter = 0;
+  state.locked = 0;
 
   // Try to read a byte from serial and evaulate
   while (SerialUSB.available() > 0) {
