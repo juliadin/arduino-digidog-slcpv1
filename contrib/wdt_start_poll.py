@@ -14,13 +14,49 @@ target = 120
 class DigiDog(object):
     """Abstraction of DigiDog device."""
 
+    ARGMAP={
+        "A": "timer.armed",
+        "C": "timer.current",
+        "F": "timer.fired",
+        "H": "device.pinout",
+        "I": "device.output-levels",
+        "J": "timer.locked",
+        "K": "device.internal-watchdog",
+        "L": "timer.fired.lifetime",
+        "M": "target.recovery-method.firmware",
+        "N": "target.recovery-method",
+        "O": "device.serial",
+        "P": "command.executed",
+        "Q": "command.blocked",
+        "R": "target.reset-timings",
+        "S": "timer.start",
+        "T": "timer.start.firmware",
+        "U": "device.unit-id",
+        "V": "device.version",
+        "W": "debug.method",
+        "X": "command.not-implemented",
+        "Z": "target.power-timings",
+    }
+
+    @staticmethod
+    def parse_result( result ):
+        parsed = {}
+        for char, items in result.items():
+            if char in DigiDog.ARGMAP:
+                parsed[DigiDog.ARGMAP[char]] = items
+            else:
+                if "unknown" not in parsed:
+                    parsed["unknown"] = {}
+                parsed["unknown"][char] = items
+        return parsed
+
     def __init__(self, device):
         """Contructor for Watchdog abstraction."""
         self._device = device
 
     def _communicate(self, write):
         """Communicate with the device. Send 'write', return lines as array."""
-        with serial.Serial(self.device, 9600, xonxoff=False, rtscts=False, timeout=1) as sdev:
+        with serial.Serial(self._device, 9600, xonxoff=False, rtscts=False, timeout=1) as sdev:
             sdev.write(write)
             time.sleep(0.05)
             timeout = False
@@ -36,6 +72,7 @@ class DigiDog(object):
 
     def command(self, command):
         """Send command to device, return results as dict of lists."""
+
         lines = self._communicate(command)
         commands = {}
         for line in lines:
@@ -46,26 +83,34 @@ class DigiDog(object):
                 value = line
             if key not in commands:
                 commands[key] = []
-            commands[key].append(value)
-        return commands
+            commands[key].append(value.strip())
+        return DigiDog.parse_result(commands)
 
     def version(self):
         """Return version number."""
         results = self.command("V")
-        if "V" in results:
-            return results["V"].pop()
+        if "device.version" in results:
+            return results["device.version"].pop()
         else:
             return 0
+
+    def command_with_version(self, command, version=2):
+        """Execute command with if version >= $version."""
+        device_version = self.version()
+        if device_version >= version:
+            return self.command(command)
+        else:
+            raise NotImplementedError("Version requested ({}) was not met by device ({})".format(version, device_version))
 
     def blocked_commands(self):
         """Return list of blocked commands on device as list of characters."""
         version = self.version()
         if version >= 2:
             results = self.command("Q")
-            if "Q" not in results:
+            if "command.blocked" not in results:
                 return []
             else:
-                blocked_commands = results["Q"]
+                blocked_commands = results["command.blocked"]
                 try:
                     blocked_commands.remove("Q")
                 except ValueError:
@@ -74,17 +119,28 @@ class DigiDog(object):
         else:
             raise NotImplementedError("Not impelemted in protocol version {} supported by device.".format(version))
 
-    def arm():
-        """Arm timer by starting it. It may be disallowed to stop it again depending on firmware configuration"""
-        pass
+    def arm(self):
+        """Arm timer by starting it. It may be disallowed to stop it again depending on firmware configuration."""
+        results = self.command("X")
+        return results
 
-    def disarm():
-        """Disarm timer, if it is allowed"""
-        pass
+    def disarm(self):
+        """Disarm timer, if it is allowed."""
+        results = self.command("x")
+        return results
 
-    def trigger():
-        pass
+    def trigger(self):
+        """Trigger a timer reset to keep the device alive."""
+        results = self.command("R")
+        return results
 
+
+dev = DigiDog("/dev/ttyACM0")
+dev.arm()
+print dev.blocked_commands()
+print dev.command_with_version("Q", "2")
+print dev.command_with_version("Q", "3")
+sys.exit(0)
 
 def calculate_bounds(reset_interval, target_timeout):
     """Calculate a range for the point in time when to reset watchdog."""
