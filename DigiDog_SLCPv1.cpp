@@ -79,7 +79,6 @@ void setup(void) {
 void loop(void) {
   // This is to carry over the fired counter in case this is necessary
   int old_fired_counter = 0;
-  state.locked = 0;
 
   // Try to read a byte from serial and evaulate
   while (SerialUSB.available() > 0) {
@@ -275,7 +274,7 @@ void loop(void) {
         version();
         break;
 
-      // Output all the commands that are forbidden by firmeware configuration
+      // Output all the commands that are forbidden by firmware configuration
       // to establish a "End of list" marker, this always ends with the message
       // that this command itself is forbidden
       case 'Q':
@@ -285,9 +284,8 @@ void loop(void) {
 #endif
 #ifndef ALLOW_DEBUG
         SerialUSB.println(F("Q:F"));
-#endif
-#ifndef ALLOW_DEBUG
         SerialUSB.println(F("Q:P"));
+        SerialUSB.println(F("Q:#"));
 #endif
 #ifndef ALLOW_RECOVERY_MODE_CHANGE
         SerialUSB.println(F("Q:m"));
@@ -296,11 +294,10 @@ void loop(void) {
 #ifndef ALLOW_FIRED_COUNTER_RESET
         SerialUSB.println(F("Q:0"));
 #endif
-#ifndef ALLOW_DEBUG
-        SerialUSB.println(F("Q:#"));
-#endif
 #ifndef ALLOW_TIMER_STOP
-        SerialUSB.println(F("Q:x"));
+        if (state.locked) {
+          SerialUSB.println(F("Q:x"));
+        }
 #endif
 #ifndef ALLOW_EEPROM_UPDATE
         SerialUSB.println(F("Q:>"));
