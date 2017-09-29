@@ -10,6 +10,11 @@ WDT_DEVICE = "/dev/ttyACM0"
 interval = 60
 target = 120
 
+class CommandBlocked(NotImplementedError):
+    pass
+
+class VersionMismatch(NotImplementedError):
+    pass
 
 class DigiDog(object):
     """Abstraction of DigiDog device."""
@@ -40,15 +45,100 @@ class DigiDog(object):
 
     @staticmethod
     def parse_result( result ):
+        parser_map = {
+            "target.power-timings": DigiDog._parse_power_timings,
+            "target.reset-timings": DigiDog._parse_int_single,
+            "device.internal-watchdog": DigiDog._parse_int_single,
+            "target.recovery-method": DigiDog._parse_recovery_method,
+            "target.recovery-method.firmware": DigiDog._parse_recovery_method,
+            "device.pinout": DigiDog._parse_pinout,
+            "device.output-levels": DigiDog._parse_output_levels,
+            "timer.armed": DigiDog._parse_bool_single,
+            "timer.fired": DigiDog._parse_bool_single,
+            "timer.fired.lifetime": DigiDog._parse_int_single,
+            "timer.locked": DigiDog._parse_bool_single,
+            "timer.start": DigiDog._parse_int_single,
+            "timer.start.firmware": DigiDog._parse_int_single,
+            "timer.current": DigiDog._parse_int_single,
+
+        }
         parsed = {}
         for char, items in result.items():
             if char in DigiDog.ARGMAP:
-                parsed[DigiDog.ARGMAP[char]] = items
+                name = DigiDog.ARGMAP[char]
+                if name in parser_map:
+                    items = parser_map[name](items)
+                parsed[name] = items
             else:
                 if "unknown" not in parsed:
                     parsed["unknown"] = {}
                 parsed["unknown"][char] = items
         return parsed
+
+    @staticmethod
+    def _parse_power_timings( items ):
+        new_items = []
+        for item in items:
+            try:
+                press1, pause, press2 = item.split(",")
+            except ValueError:
+                next
+            new_items.append({"press1": press1, "pause": pause, "press2": press2})
+        return new_items[0]
+
+    @staticmethod
+    def _parse_output_levels( items ):
+        for item in items:
+            try:
+                reset, power = item.split(" ")
+                reset_on, reset_off = reset.split(",")
+                power_on, power_off = power.split(",")
+            except ValueError:
+                next
+            return {
+                "reset": {
+                    "on": "HIGH" if int(reset_on) else "LOW",
+                    "off": "HIGH" if int(reset_off) else "LOW",
+                    },
+                "power": {
+                    "on": "HIGH" if int(power_on) else "LOW",
+                    "off": "HIGH" if int(power_off) else "LOW",
+                    }
+                }
+    @staticmethod
+    def _parse_pinout( items ):
+        new_items = []
+        for item in items:
+            try:
+                reset, power, led = item.split(",")
+            except ValueError:
+                next
+            new_items.append({"reset": reset, "power": power, "led": led})
+        return new_items[0]
+
+    @staticmethod
+    def _parse_recovery_method( items ):
+        new_items = []
+        for item in items:
+            if item:
+                new_items.append("power")
+            else:
+                new_items.append("reset")
+        return new_items[0]
+
+    @staticmethod
+    def _parse_bool_single( items ):
+        new_items = []
+        for item in items:
+            new_items.append(bool(int(item)))
+        return new_items[0]
+
+    @staticmethod
+    def _parse_int_single( items ):
+        new_items = []
+        for item in items:
+            new_items.append(int(item))
+        return new_items[0]
 
     def __init__(self, device):
         """Contructor for Watchdog abstraction."""
@@ -56,7 +146,7 @@ class DigiDog(object):
 
     def _communicate(self, write):
         """Communicate with the device. Send 'write', return lines as array."""
-        with serial.Serial(self._device, 9600, xonxoff=False, rtscts=False, timeout=1) as sdev:
+        with serial.Serial(self._device, 9600, xonxoff=False, rtscts=False, timeout=.2) as sdev:
             sdev.write(write)
             time.sleep(0.05)
             timeout = False
@@ -90,34 +180,30 @@ class DigiDog(object):
         """Return version number."""
         results = self.command("V")
         if "device.version" in results:
-            return results["device.version"].pop()
+            return int(results["device.version"].pop())
         else:
             return 0
 
     def command_with_version(self, command, version=2):
         """Execute command with if version >= $version."""
         device_version = self.version()
-        if device_version >= version:
+        if device_version >= int(version):
             return self.command(command)
         else:
-            raise NotImplementedError("Version requested ({}) was not met by device ({})".format(version, device_version))
+            raise VersionMismatch("Version requested ({}) was not met by device ({}) - Command '{}'".format(version, device_version, command))
 
     def blocked_commands(self):
         """Return list of blocked commands on device as list of characters."""
-        version = self.version()
-        if version >= 2:
-            results = self.command("Q")
-            if "command.blocked" not in results:
-                return []
-            else:
-                blocked_commands = results["command.blocked"]
-                try:
-                    blocked_commands.remove("Q")
-                except ValueError:
-                    raise ValueError("List of blocked commands is not complete.")
-                return blocked_commands
+        results = self.command_with_version("Q", 2)
+        if "command.blocked" not in results:
+            return []
         else:
-            raise NotImplementedError("Not impelemted in protocol version {} supported by device.".format(version))
+            blocked_commands = results["command.blocked"]
+            try:
+                blocked_commands.remove("Q")
+            except ValueError:
+                raise ValueError("List of blocked commands is not complete.")
+            return blocked_commands
 
     def arm(self):
         """Arm timer by starting it. It may be disallowed to stop it again depending on firmware configuration."""
@@ -134,12 +220,96 @@ class DigiDog(object):
         results = self.command("R")
         return results
 
+    def timer_up(self):
+        """Increase the timer interval."""
+        results = self.command_with_version("+", 2)
+        if "command.blocked" in results and "+" in results["command.blocked"]:
+            raise CommandBlocked("Timer can not be adjusted.")
+        return results["timer.start"]
+
+    def timer_down(self):
+        """Increase the timer interval."""
+        results = self.command_with_version("-", 2)
+        if "command.blocked" in results and "-" in results["command.blocked"]:
+            raise CommandBlocked("Timer can not be adjusted.")
+        return results["timer.start"]
+
+    def set_timer(self, value):
+        """Try to set timer to a defined value. If the value can not be met accurately,
+           the timer will be set to a value just above it. If the timer can not be set
+           to a value high enough, it is set to the highest value possible. The new timer
+           value is returned."""
+        blocked = self.blocked_commands()
+        over = False
+        under = False
+        stasis = False
+        timer_set = False
+        timer = self.get_timer_start()
+        last = timer
+        if value <= 0 or value >=65535:
+            raise ValueError("Requested timer value of '{}' implausible. Sensible values are from 0 to 65535".format(value))
+        while not timer_set:
+            # Save old timer value to see if it was modified
+            last = timer
+            if timer > value:
+                # If timer is over requested value, decrease timer
+                timer = self.timer_down()
+                # If timer is now below max, set low tide flag, reset high tide flag
+                if timer < value:
+                    under = True
+                    over = False
+            else:
+                # If timer is under requested value, increase timer
+                timer = self.timer_up()
+                # If timer is now above max, set high tide flag, reset low tide flag
+                if timer > value:
+                    under = False
+                    over = True
+            print "r{} t{} - over: {}, under: {}".format(value, timer, over, under)
+            if last == timer:
+                timer_set = True
+            if timer == value:
+                timer_set = True
+            if over and not under:
+                timer_set = True
+        return timer
+
+    def get_timer_start(self):
+        """Request timer start value."""
+        return self.get_status()["timer.start"]
+
+    def get_timer_current(self):
+        """Request current timer value."""
+        return self.get_status()["timer.current"]
+
+    def get_config(self):
+        """Fetch configuration from device"""
+        return self.command_with_version("C", 2)
+
+    def get_status(self):
+        """Fetch operational status from device"""
+        return self.command_with_version("S", 2)
+
+    def eeprom_save(self):
+        pass
+
+    def eeprom_restore(self):
+        pass
 
 dev = DigiDog("/dev/ttyACM0")
-dev.arm()
+print dev.arm()
 print dev.blocked_commands()
-print dev.command_with_version("Q", "2")
-print dev.command_with_version("Q", "3")
+print dev.timer_up()
+print dev.timer_down()
+print dev.get_config()
+print dev.get_status()
+print dev.get_timer_start()
+print dev.get_timer_current()
+print dev.set_timer(2699)
+print dev.set_timer(1)
+print dev.set_timer(5000)
+print dev.set_timer(100)
+print dev.trigger()
 sys.exit(0)
 
 def calculate_bounds(reset_interval, target_timeout):
