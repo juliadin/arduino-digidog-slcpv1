@@ -258,14 +258,13 @@ class DigiDog(object):
                 if timer < value:
                     under = True
                     over = False
-            else:
+            elif timer < value:
                 # If timer is under requested value, increase timer
                 timer = self.timer_up()
                 # If timer is now above max, set high tide flag, reset low tide flag
                 if timer > value:
                     under = False
                     over = True
-            print "r{} t{} - over: {}, under: {}".format(value, timer, over, under)
             if last == timer:
                 timer_set = True
             if timer == value:
@@ -291,25 +290,38 @@ class DigiDog(object):
         return self.command_with_version("S", 2)
 
     def eeprom_save(self):
-        pass
+        """Write values to EEPROM if allowed"""
+        results = self.command_with_version(">", 2)
+        return results
 
     def eeprom_restore(self):
-        pass
+        """Read values from EEPROM and reset counters - if allowed.
+           TODO: Check if fired counter can be reject."""
+        results = self.command_with_version("<", 2)
+        return results
+
 
 dev = DigiDog("/dev/ttyACM0")
-print dev.arm()
-print dev.blocked_commands()
-print dev.timer_up()
-print dev.timer_down()
-print dev.get_config()
-print dev.get_status()
-print dev.get_timer_start()
-print dev.get_timer_current()
-print dev.set_timer(2699)
-print dev.set_timer(1)
-print dev.set_timer(5000)
-print dev.set_timer(100)
-print dev.trigger()
+print dev.set_timer(3000)
+timer = dev.get_timer_start()
+
+dev.arm()
+try:
+    dev.command_with_version("L", 2)
+except Exception as e:
+    print "Could not lock timer due to exception {}".format(e)
+
+while True:
+    try:
+        remaining = dev.get_timer_current()/10
+        print "{}s remaining".format(remaining)
+        print dev.trigger()
+    except Exception as e:
+        print "Could not reset timer due to exception: {}".format(e)
+    sleep = timer/20
+    print "Sleeping {}s for {}s timer".format(sleep, timer/10)
+    time.sleep(sleep)
+
 sys.exit(0)
 
 def calculate_bounds(reset_interval, target_timeout):
