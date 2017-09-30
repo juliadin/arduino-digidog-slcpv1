@@ -16,6 +16,9 @@ class CommandBlocked(NotImplementedError):
 class VersionMismatch(NotImplementedError):
     pass
 
+class CommandNotSensibleInThisState(NotImplementedError):
+    pass
+
 class DigiDog(object):
     """Abstraction of DigiDog device."""
 
@@ -213,12 +216,18 @@ class DigiDog(object):
     def disarm(self):
         """Disarm timer, if it is allowed."""
         results = self.command("x")
-        return results
+        if "command.blocked" in results and "x" in results["command.blocked"]:
+            raise CommandBlocked("Could not disarm timer because it was not allowed.")
+        if "command.executed" in results and "x" in results["command.executed"]:
+            return True
 
     def trigger(self):
         """Trigger a timer reset to keep the device alive."""
-        results = self.command("R")
-        return results
+        if self.get_timer_armed():
+            results = self.command("R")
+            return results
+        else:
+            raise CommandNotSensibleInThisState("Timer is not running. It does not make any sense to trigger it.")
 
     def timer_up(self):
         """Increase the timer interval."""
@@ -281,6 +290,10 @@ class DigiDog(object):
         """Request current timer value."""
         return self.get_status()["timer.current"]
 
+    def get_timer_armed(self):
+        """Request current timer value."""
+        return self.get_status()["timer.armed"]
+
     def get_config(self):
         """Fetch configuration from device"""
         return self.command_with_version("C", 2)
@@ -300,14 +313,24 @@ class DigiDog(object):
         results = self.command_with_version("<", 2)
         return results
 
+    def lock(self):
+        """Set timer lock if supported."""
+        results = self.command_with_version("L", 2)
+        if "command.blocked" in results and "L" in results["command.blocked"]:
+            raise CommandBlocked("Cannot lock Timer. Command blocked.")
+        if "command.executed" in results and "L" in results["command.executed"]:
+            return True
+        else:
+            return False
+
 
 dev = DigiDog("/dev/ttyACM0")
-print dev.set_timer(3000)
+print dev.set_timer(1200)
 timer = dev.get_timer_start()
 
 dev.arm()
 try:
-    dev.command_with_version("L", 2)
+    dev.lock()
 except Exception as e:
     print "Could not lock timer due to exception {}".format(e)
 
@@ -316,11 +339,21 @@ while True:
         remaining = dev.get_timer_current()/10
         print "{}s remaining".format(remaining)
         print dev.trigger()
+        sleep = timer/50
+        print "Sleeping {}s for {}s timer".format(sleep, timer/10)
+        time.sleep(sleep)
+    except KeyboardInterrupt:
+        print dev.disarm()
+        break
+    except CommandNotSensibleInThisState:
+        print "Could not trigger timer because it was not running. Starting timer..."
+        try:
+            dev.arm()
+            dev.lock()
+        except Exception as e:
+            print "Could not restart timer due to exception: {}".format(e)
     except Exception as e:
         print "Could not reset timer due to exception: {}".format(e)
-    sleep = timer/20
-    print "Sleeping {}s for {}s timer".format(sleep, timer/10)
-    time.sleep(sleep)
 
 sys.exit(0)
 
