@@ -67,7 +67,7 @@ void iosetup(void) {
 
 void setup(void) {
   eeprom = read_eeprom();
-  state.armed = ARMED_ON_BOOT;
+  state.armed = 0;
   state.fired = 0;
   state.timer = 0;
   state.int_wdt = INTERNAL_WATCHDOG_START;
@@ -94,7 +94,7 @@ void loop(void) {
 
       // force reset trigger
       case 'F':
-#ifdef ALLOW_DEBUG_RESET
+#ifdef ALLOW_DEBUG
         SerialUSB.println(F("W:RST"));
         reset_target();
 #else
@@ -104,7 +104,7 @@ void loop(void) {
 
       // force power cycle trigger
       case 'P':
-#ifdef ALLOW_DEBUG_POWER_CYCLE
+#ifdef ALLOW_DEBUG
         SerialUSB.println(F("W:PWR"));
         power_cycle_target();
 #else
@@ -173,14 +173,32 @@ void loop(void) {
         status();
         break;
 
+<<<<<<< HEAD
       // reset timer and disarm Watchdog
       case 'x':
 #ifdef ALLOW_TIMER_STOP
         reset_timer();
         state.armed = 0;
+=======
+      case 'L':
+#ifndef ALLOW_TIMER_STOP
+        state.locked = 1;
+        SerialUSB.println(F("P:L"));
+>>>>>>> 89a91db14ba997af93f44b99bb271bd465cd2bce
 #else
-        SerialUSB.println(F("Q:x"));
+        SerialUSB.println(F("Q:L"));
 #endif
+        break;
+
+      // reset timer and disarm Watchdog
+      case 'x':
+        if ( state.locked == 0) {
+          reset_timer();
+          state.armed = 0;
+          update_eeprom();
+        } else {
+          SerialUSB.println(F("Q:x"));
+        }
         status();
         break;
 
@@ -275,7 +293,7 @@ void loop(void) {
         version();
         break;
 
-      // Output all the commands that are forbidden by firmeware configuration
+      // Output all the commands that are forbidden by firmware configuration
       // to establish a "End of list" marker, this always ends with the message
       // that this command itself is forbidden
       case 'Q':
@@ -283,11 +301,10 @@ void loop(void) {
         SerialUSB.println(F("Q:-"));
         SerialUSB.println(F("Q:+"));
 #endif
-#ifndef ALLOW_DEBUG_RESET
+#ifndef ALLOW_DEBUG
         SerialUSB.println(F("Q:F"));
-#endif
-#ifndef ALLOW_DEBUG_POWER_CYCLE
         SerialUSB.println(F("Q:P"));
+        SerialUSB.println(F("Q:#"));
 #endif
 #ifndef ALLOW_RECOVERY_MODE_CHANGE
         SerialUSB.println(F("Q:m"));
@@ -296,21 +313,15 @@ void loop(void) {
 #ifndef ALLOW_FIRED_COUNTER_RESET
         SerialUSB.println(F("Q:0"));
 #endif
-#ifndef ALLOW_DEBUG_WATCHDOG_REBOOT
-        SerialUSB.println(F("Q:#"));
-#endif
 #ifndef ALLOW_TIMER_STOP
-        SerialUSB.println(F("Q:x"));
+        if (state.locked) {
+          SerialUSB.println(F("Q:x"));
+        }
 #endif
 #ifndef ALLOW_EEPROM_UPDATE
         SerialUSB.println(F("Q:>"));
 #endif
         SerialUSB.println(F("Q:Q"));
-        break;
-
-      // Output (supported command discovery)
-      case '?':
-        commands();
         break;
 
       default:
