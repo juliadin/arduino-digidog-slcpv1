@@ -173,18 +173,11 @@ void loop(void) {
         status();
         break;
 
-<<<<<<< HEAD
       // reset timer and disarm Watchdog
       case 'x':
 #ifdef ALLOW_TIMER_STOP
         reset_timer();
         state.armed = 0;
-=======
-      case 'L':
-#ifndef ALLOW_TIMER_STOP
-        state.locked = 1;
-        SerialUSB.println(F("P:L"));
->>>>>>> 89a91db14ba997af93f44b99bb271bd465cd2bce
 #else
         SerialUSB.println(F("Q:L"));
 #endif
