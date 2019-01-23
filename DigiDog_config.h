@@ -20,12 +20,12 @@
 
 // ALLOW_... configures, if the respective command is allowed.
 // #define ALLOW_FIRED_COUNTER_RESET
-#define ALLOW_RECOVERY_MODE_CHANGE
-#define ALLOW_DEBUG_RESET
-#define ALLOW_DEBUG_POWER_CYCLE
-//#define ALLOW_DEBUG_WATCHDOG_REBOOT
+// #define ALLOW_RECOVERY_MODE_CHANGE
+// #define ALLOW_DEBUG_RESET
+// #define ALLOW_DEBUG_POWER_CYCLE
+// #define ALLOW_DEBUG_WATCHDOG_REBOOT
 #define ALLOW_TIMER_CHANGE
-//#define ALLOW_TIMER_STOP
+#define ALLOW_TIMER_STOP
 #define ALLOW_EEPROM_UPDATE
 
 // Board configuration. If your LED does not start to blink after enabling watchdog
@@ -53,6 +53,8 @@
 
 // Internal Watchdog start value
 #define INTERNAL_WATCHDOG_START 18000
+
+#define REBOOT_AFTER_PRESSES 3
 
 #define TIMER_SET_STEP 100
 #define TIMER_SET_MIN 100

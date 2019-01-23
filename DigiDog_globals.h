@@ -26,6 +26,7 @@ typedef struct State_content_struct {
     bool fired;
     unsigned int timer;
     unsigned int int_wdt;
+    unsigned int reboot_in;
 } State_content;
 
 #endif

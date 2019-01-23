@@ -72,6 +72,7 @@ void setup(void) {
   state.timer = 0;
   state.int_wdt = INTERNAL_WATCHDOG_START;
   state.timer=eeprom.config.timer_start;
+  state.reboot_in = REBOOT_AFTER_PRESSES;
 
   iosetup();
 }
@@ -79,11 +80,15 @@ void setup(void) {
 void loop(void) {
   // This is to carry over the fired counter in case this is necessary
   int old_fired_counter = 0;
+  int reboot_counter;
 
   // Try to read a byte from serial and evaulate
   while (SerialUSB.available() > 0) {
     digitalWrite(LED,HIGH);
     int input = SerialUSB.read();
+    if ( input != '#' ) {
+      state.reboot_in = REBOOT_AFTER_PRESSES;
+    }
     switch (input) {
       // Debug commands
 
@@ -111,7 +116,13 @@ void loop(void) {
       //  !! do not use for firmware update !!
       case '#':
 #ifdef ALLOW_DEBUG_WATCHDOG_REBOOT
-        DigisparkReset();
+        if ( state.reboot_in <= 1 ) {
+          DigisparkReset();
+        } else {
+          state.reboot_in -= 1;
+          SerialUSB.print(F("#:"));
+          SerialUSB.println(state.reboot_in, DEC);
+        }
 #else
         SerialUSB.println(F("Q:#"));
 #endif
@@ -167,7 +178,6 @@ void loop(void) {
 #ifdef ALLOW_TIMER_STOP
         reset_timer();
         state.armed = 0;
-        update_state();
 #else
         SerialUSB.println(F("Q:x"));
 #endif

@@ -43,6 +43,10 @@ void status(void) {
   SerialUSB.print(F("L:"));
   SerialUSB.println(eeprom.counters.fired_counter, DEC);
 
+  // How many times to press # before reboot?
+  SerialUSB.print(F("#:"));
+  SerialUSB.println(state.reboot_in, DEC);
+
   return;
 }
 
