@@ -8,7 +8,7 @@ import sys
 WDT_DEVICE="/dev/ttyACM0"
 
 interval=60
-target=120
+target=240
 
 
 def calculate_bounds( reset_interval, target_timeout ):
@@ -40,7 +40,7 @@ def blocked_commands( device ):
                     if not command == "Q":
                         these_blocked_cmds.append(command)
                 else:
-                    print "Unknown response to Q - {}".format(sline)
+                    print("Unknown response to Q - {}".format(sline))
     return these_blocked_cmds
 
 
@@ -63,17 +63,17 @@ try:
         for line in lines_from_device( wdt_dev ):
             if line.startswith("V:"):
                 if line.split("V:")[1].strip() >= "1":
-                    print "Detected protocol version >=1.0 Watchdog on port {}".format(WDT_DEVICE)
+                    print("Detected protocol version >=1.0 Watchdog on port {}".format(WDT_DEVICE))
                     detected = True
                 else:
-                    print "Detected protocol version is not supported"
+                    print("Detected protocol version is not supported")
             if line.startswith("U:"):
                 if line.split("U:")[1].strip() == "0":
-                    print "Detected unknown device on port {}".format(WDT_DEVICE)
+                    print("Detected unknown device on port {}".format(WDT_DEVICE))
                 elif line.split("U:")[1].strip() == "1":
-                    print "Detected DigiSpark based DigiDog on port {}".format(WDT_DEVICE)
+                    print("Detected DigiSpark based DigiDog on port {}".format(WDT_DEVICE))
                 else:
-                    print "Detected protocol version is not known. This may or may not cause problems."
+                    print("Detected protocol version is not known. This may or may not cause problems.")
         if not detected:
             sys.exit(1)
         wdt_dev.write("C")
@@ -83,31 +83,31 @@ try:
                     method = "power cycle"
                 else:
                     method = "reset"
-                print "The device is configured to recover the system by {}".format( method )
+                print("The device is configured to recover the system by {}".format( method ))
         wdt_dev.write("S")
         for line in lines_from_device( wdt_dev ):
             if line.startswith("F:"):
                 if line.split(":")[1].strip() == "1":
-                    print "Watchdog fired since last activation"
+                    print("Watchdog fired since last activation")
                 else:
-                    print "Watchdog did not fire since last activation"
+                    print("Watchdog did not fire since last activation")
         wdt_dev.write("X")
         for line in lines_from_device( wdt_dev ):
             if line.startswith("A:"):
                 if line.split(":")[1].strip() == "1":
-                    print "Watchdog successfully enabled"
+                    print("Watchdog successfully enabled")
                 else:
-                    print "Failed to enable watchdog"
+                    print("Failed to enable watchdog")
             elif line.startswith("S:"):
-                print "Timeout approximately {}s".format( int(int(line.split(":")[1])/10) )
+                print("Timeout approximately {}s".format( int(int(line.split(":")[1])/10) ))
     blocked_cmds = blocked_commands(WDT_DEVICE)
     if "-" in blocked_cmds or "+" in blocked_cmds:
-        print "Device forbids adjusting the watchdog - disabled"
+        print("Device forbids adjusting the watchdog - disabled")
         disable_adjust = True
     else:
         disable_adjust = False
     if "x" in blocked_cmds:
-        print "Watchdog forbids stopping the timer! Can not stop timer on exit!"
+        print("Watchdog forbids stopping the timer! Can not stop timer on exit!")
         disable_stop = True
     else:
         disable_stop = False
@@ -119,11 +119,11 @@ try:
         lower, upper = calculate_bounds( interval, target )
         with serial.Serial(WDT_DEVICE, 9600, xonxoff=False, rtscts=False, timeout=1) as wdt_dev:
             wdt_dev.write("S")
-            print "resetting timer..."
+            print("resetting timer...")
             wdt_dev.write("R")
             for line in lines_from_device( wdt_dev ):
                 if line.startswith("C:"):
-                    print "Time left was approximately {}s".format( int(int(line.split(":")[1])/10) )
+                    print("Time left was approximately {}s".format( int(int(line.split(":")[1])/10) ))
                     if not disable_adjust:
                         if int(int(line.split(":")[1])/10) > upper:
                             wdt_dev.write("-")
@@ -132,10 +132,10 @@ try:
                         for iline in lines_from_device( wdt_dev ):
                             if iline.startswith("S:"):
                                 new_time = int(int(iline.split(":")[1])/10)
-                                print "Adjusted watchdog to {}s. target is {}s".format(new_time, target)
+                                print("Adjusted watchdog to {}s. target is {}s".format(new_time, target))
                     else:
                         if notice_disable_adjust:
-                            print "Not adjusting watchdog - device won't let us."
+                            print("Not adjusting watchdog - device won't let us.")
                             notice_disable_adjust = False
 
         time.sleep(interval)
@@ -146,8 +146,8 @@ except KeyboardInterrupt:
         for line in lines_from_device( wdt_dev ):
             if line.startswith("A:"):
                 if line.split(":")[1].strip() == "0":
-                    print "Watchdog successfully disabled"
+                    print("Watchdog successfully disabled")
                 else:
-                    print "Failed to disable watchdog"
+                    print("Failed to disable watchdog")
             if line.startswith("Q:x"):
-                print "Watchdog can not be disabled. Timer is still running."
+                print("Watchdog can not be disabled. Timer is still running.")
